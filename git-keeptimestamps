@@ -50,8 +50,9 @@ def restore_timestamps(timestamps):
             new_sha1 = git_output('hash-object', '--', path).strip()
             if sha1 == new_sha1:
                 s = os.lstat(path)
-                print 'Restoring timestamp:', path
-                os.utime(path, (s.st_atime, saved_mtime))
+                if s.st_mtime != saved_mtime:
+                  print 'Restoring timestamp:', path
+                  os.utime(path, (s.st_atime, saved_mtime))
             else:
                 if verbose:
                   print path, 'has changed (not restoring)'
