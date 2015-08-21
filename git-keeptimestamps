@@ -71,6 +71,7 @@ def main():
     oparse.add_option('--db',
         action='store', dest='database',
         help='Specify the path to the data file to restore/save from/to')
+    oparse.disable_interspersed_args()
 
     opts, args = oparse.parse_args()
     if opts.action is not None:
