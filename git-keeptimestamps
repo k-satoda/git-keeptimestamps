@@ -123,8 +123,15 @@ def main():
         rev, timestamps = load(dbpath)
         restore_timestamps(timestamps)
     else:
-        timestamps = collect_timestamps(rev)
-        save(dbpath, rev, timestamps)
+        timestamps = None
+        if "rebase" in args and (
+            "--continue" in args or
+            "--abort" in args or
+            "--skio" in args):
+          rev, timestamps = load(dbpath)
+        else:
+          timestamps = collect_timestamps(rev)
+          save(dbpath, rev, timestamps)
         git_run(*args)
         restore_timestamps(timestamps)
 
