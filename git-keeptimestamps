@@ -1,5 +1,14 @@
 #!/usr/bin/env python
 
+# git-keeptimestamps
+# (started from a snippet at https://stackoverflow.com/a/3418577)
+# 
+# the goal is expected to do the followings:
+#   - save timestamps in current git tree
+#   - run a git command
+#   - restore timestamps of those files which end up to be
+#     identical to the file before the operation
+
 from optparse import OptionParser
 import os
 import subprocess
