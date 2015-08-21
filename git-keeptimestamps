@@ -1,0 +1,97 @@
+#!/usr/bin/env python
+
+from optparse import OptionParser
+import os
+import subprocess
+import cPickle as pickle
+
+try:
+    check_output = subprocess.check_output
+except AttributeError:
+    # check_output was added in Python 2.7, so it's not always available
+    def check_output(*args, **kwargs):
+        kwargs['stdout'] = subprocess.PIPE
+        proc = subprocess.Popen(*args, **kwargs)
+        output = proc.stdout.read()
+        retcode = proc.wait()
+        if retcode != 0:
+            cmd = kwargs.get('args')
+            if cmd is None:
+                cmd = args[0]
+            err = subprocess.CalledProcessError(retcode, cmd)
+            err.output = output
+            raise err
+        else:
+            return output
+
+def git_cmd(*args):
+    return check_output(['git'] + list(args), stderr=subprocess.STDOUT)
+
+def walk_git_tree(rev):
+    """ Generates (sha1,path) pairs for all blobs (files) listed by git ls-tree. """
+    tree = git_cmd('ls-tree', '-r', '-z', rev).rstrip('\0')
+    for entry in tree.split('\0'):
+        print entry
+        mode, type, sha1, path = entry.split()
+        if type == 'blob':
+            yield (sha1, path)
+        else:
+            print 'WARNING: Tree contains a non-blob.'
+
+def collect_timestamps(rev):
+    timestamps = {}
+    for sha1, path in walk_git_tree(rev):
+        s = os.lstat(path)
+        timestamps[path] = (sha1, s.st_mtime, s.st_atime)
+        print sha1, s.st_mtime, s.st_atime, path
+    return timestamps
+
+def restore_timestamps(timestamps):
+    for path, v in timestamps.items():
+        if os.path.isfile(path):
+            sha1, mtime, atime = v
+            new_sha1 = git_cmd('hash-object', '--', path).strip()
+            if sha1 == new_sha1:
+                print 'Restoring', path
+                os.utime(path, (atime, mtime))
+            else:
+                print path, 'has changed (not restoring)'
+        elif os.path.exists(path):
+            print 'WARNING: File is no longer a file...'
+
+def main():
+    oparse = OptionParser()
+    oparse.add_option('--save',
+        action='store_const', const='save', dest='action',
+        help='Save the timestamps of all git tracked files')
+    oparse.add_option('--restore',
+        action='store_const', const='restore', dest='action',
+        help='Restore the timestamps of git tracked files whose sha1 hashes have not changed')
+    oparse.add_option('--db',
+        action='store', dest='database',
+        help='Specify the path to the data file to restore/save from/to')
+
+    opts, args = oparse.parse_args()
+    if opts.action is None:
+        oparse.error('an action (--save or --restore) must be specified')
+
+    if opts.database is None:
+        repo = git_cmd('rev-parse', '--git-dir').strip()
+        dbpath = os.path.join(repo, 'TIMESTAMPS')
+        print 'Using default database:', dbpath
+    else:
+        dbpath = opts.database
+
+    rev = git_cmd('rev-parse', 'HEAD').strip()
+    print 'Working against rev', rev
+
+    if opts.action == 'save':
+        timestamps = collect_timestamps(rev)
+        data = (rev, timestamps)
+        pickle.dump(data, open(dbpath, 'wb'))
+    elif opts.action == 'restore':
+        rev, timestamps = pickle.load(open(dbpath, 'rb'))
+        restore_timestamps(timestamps)
+
+if __name__ == '__main__':
+    main()
