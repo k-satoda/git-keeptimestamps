@@ -14,6 +14,8 @@ import os
 import subprocess
 import cPickle as pickle
 
+verbose = False
+
 def git_output(*args):
     return subprocess.check_output(['git'] + list(args))
 
@@ -24,7 +26,8 @@ def walk_git_tree(rev):
     """ Generates (sha1,path) pairs for all blobs (files) listed by git ls-tree. """
     tree = git_output('ls-tree', '-r', '-z', rev).rstrip('\0')
     for entry in tree.split('\0'):
-        print entry
+        if verbose:
+          print entry
         mode, type, sha1, path = entry.split()
         if type == 'blob':
             yield (sha1, path)
@@ -36,7 +39,8 @@ def collect_timestamps(rev):
     for sha1, path in walk_git_tree(rev):
         s = os.lstat(path)
         timestamps[path] = (sha1, s.st_mtime, s.st_atime)
-        print sha1, s.st_mtime, s.st_atime, path
+        if verbose:
+          print sha1, s.st_mtime, s.st_atime, path
     return timestamps
 
 def restore_timestamps(timestamps):
@@ -45,10 +49,11 @@ def restore_timestamps(timestamps):
             sha1, mtime, atime = v
             new_sha1 = git_output('hash-object', '--', path).strip()
             if sha1 == new_sha1:
-                print 'Restoring', path
+                print 'Restoring timestamp:', path
                 os.utime(path, (atime, mtime))
             else:
-                print path, 'has changed (not restoring)'
+                if verbose:
+                  print path, 'has changed (not restoring)'
         elif os.path.exists(path):
             print 'WARNING: File is no longer a file...'
 
@@ -71,9 +76,15 @@ def main():
     oparse.add_option('--db',
         action='store', dest='database',
         help='Specify the path to the data file to restore/save from/to')
+    oparse.add_option('--verbose',
+        action='store_true', dest='verbose', default=False,
+        help='Make verbose')
     oparse.disable_interspersed_args()
 
     opts, args = oparse.parse_args()
+    global verbose
+    verbose = opts.verbose
+
     if opts.action is not None:
         if len(args) > 0:
           oparse.error('an action (--save or --restore) must be specified without remaining args')
@@ -81,12 +92,14 @@ def main():
     if opts.database is None:
         repo = git_output('rev-parse', '--git-dir').strip()
         dbpath = os.path.join(repo, 'TIMESTAMPS')
-        print 'Using default database:', dbpath
+        if verbose:
+          print 'Using default database:', dbpath
     else:
         dbpath = opts.database
 
     rev = git_output('rev-parse', 'HEAD').strip()
-    print 'Working against rev', rev
+    if verbose:
+      print 'Working against rev', rev
 
     if opts.action == 'save':
         save(dbpath, rev, collect_timestamps(rev))
