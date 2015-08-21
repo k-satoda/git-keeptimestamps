@@ -13,6 +13,7 @@ from optparse import OptionParser
 import os
 import subprocess
 import cPickle as pickle
+import time
 
 verbose = False
 
@@ -43,6 +44,19 @@ def collect_timestamps(rev):
           print sha1, s.st_mtime, s.st_atime, path
     return timestamps
 
+def timestring(epoc):
+  t = time.localtime(epoc)
+  now = time.localtime()
+  format = '%Y/%m/%d %H:%M:%S'
+  if t.tm_year == now.tm_year:
+    format = '%m/%d %H:%M:%S'
+    if t.tm_yday == now.tm_yday:
+      format = '%H:%M:%S'
+  return time.strftime(format, t)
+
+def timediff(epoc1, epoc2):
+  return "%s->%s" % (timestring(epoc1), timestring(epoc2))
+
 def restore_timestamps(timestamps):
     for path, v in timestamps.items():
         if os.path.isfile(path):
@@ -51,7 +65,7 @@ def restore_timestamps(timestamps):
             if sha1 == new_sha1:
                 s = os.lstat(path)
                 if s.st_mtime != saved_mtime:
-                  print 'Restoring timestamp:', path
+                  print 'Restoring mtime (%s):' % timediff(s.st_mtime, saved_mtime), path
                   os.utime(path, (s.st_atime, saved_mtime))
             else:
                 if verbose:
