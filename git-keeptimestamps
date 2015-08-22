@@ -28,7 +28,7 @@ def walk_git_tree(rev):
     tree = git_output('ls-tree', '-r', '-z', rev).rstrip('\0')
     for entry in tree.split('\0'):
         if verbose:
-          print entry
+            print entry
         mode, type, sha1, path = entry.split()
         if type == 'blob':
             yield (sha1, path)
@@ -41,21 +41,21 @@ def collect_timestamps(rev):
         s = os.lstat(path)
         timestamps[path] = (sha1, s.st_mtime, s.st_atime)
         if verbose:
-          print sha1, s.st_mtime, s.st_atime, path
+            print sha1, s.st_mtime, s.st_atime, path
     return timestamps
 
 def timestring(epoc):
-  t = time.localtime(epoc)
-  now = time.localtime()
-  format = '%Y/%m/%d %H:%M:%S'
-  if t.tm_year == now.tm_year:
-    format = '%m/%d %H:%M:%S'
-    if t.tm_yday == now.tm_yday:
-      format = '%H:%M:%S'
-  return time.strftime(format, t)
+    t = time.localtime(epoc)
+    now = time.localtime()
+    format = '%Y/%m/%d %H:%M:%S'
+    if t.tm_year == now.tm_year:
+        format = '%m/%d %H:%M:%S'
+        if t.tm_yday == now.tm_yday:
+            format = '%H:%M:%S'
+    return time.strftime(format, t)
 
 def timediff(epoc1, epoc2):
-  return "%s->%s" % (timestring(epoc1), timestring(epoc2))
+    return "%s->%s" % (timestring(epoc1), timestring(epoc2))
 
 def restore_timestamps(timestamps):
     for path, v in timestamps.items():
@@ -65,11 +65,11 @@ def restore_timestamps(timestamps):
             if sha1 == new_sha1:
                 s = os.lstat(path)
                 if s.st_mtime != saved_mtime:
-                  print 'Restoring mtime (%s):' % timediff(s.st_mtime, saved_mtime), path
-                  os.utime(path, (s.st_atime, saved_mtime))
+                    print 'Restoring mtime (%s):' % timediff(s.st_mtime, saved_mtime), path
+                    os.utime(path, (s.st_atime, saved_mtime))
             else:
                 if verbose:
-                  print path, 'has changed (not restoring)'
+                    print path, 'has changed (not restoring)'
         elif os.path.exists(path):
             print 'WARNING: File is no longer a file...'
 
@@ -103,19 +103,19 @@ def main():
 
     if opts.action is not None:
         if len(args) > 0:
-          oparse.error('an action (--save or --restore) must be specified without remaining args')
+            oparse.error('an action (--save or --restore) must be specified without remaining args')
 
     if opts.database is None:
         repo = git_output('rev-parse', '--git-dir').strip()
         dbpath = os.path.join(repo, 'TIMESTAMPS')
         if verbose:
-          print 'Using default database:', dbpath
+            print 'Using default database:', dbpath
     else:
         dbpath = opts.database
 
     rev = git_output('rev-parse', 'HEAD').strip()
     if verbose:
-      print 'Working against rev', rev
+        print 'Working against rev', rev
 
     if opts.action == 'save':
         save(dbpath, rev, collect_timestamps(rev))
@@ -125,13 +125,13 @@ def main():
     else:
         timestamps = None
         if "rebase" in args and (
-            "--continue" in args or
-            "--abort" in args or
-            "--skio" in args):
-          rev, timestamps = load(dbpath)
+                "--continue" in args or
+                "--abort" in args or
+                "--skio" in args):
+            rev, timestamps = load(dbpath)
         else:
-          timestamps = collect_timestamps(rev)
-          save(dbpath, rev, timestamps)
+            timestamps = collect_timestamps(rev)
+            save(dbpath, rev, timestamps)
         git_run(*args)
         restore_timestamps(timestamps)
 
