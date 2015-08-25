@@ -61,10 +61,10 @@ def restore_timestamps(timestamps):
     for path, v in timestamps.items():
         if os.path.isfile(path):
             sha1, saved_mtime, saved_atime = v
-            new_sha1 = git_output('hash-object', '--', path).strip()
-            if sha1 == new_sha1:
-                s = os.lstat(path)
-                if s.st_mtime != saved_mtime:
+            s = os.lstat(path)
+            if s.st_mtime != saved_mtime:
+                new_sha1 = git_output('hash-object', '--', path).strip()
+                if sha1 == new_sha1:
                     print 'Restoring mtime (%s):' % timediff(s.st_mtime, saved_mtime), path
                     os.utime(path, (s.st_atime, saved_mtime))
             else:
