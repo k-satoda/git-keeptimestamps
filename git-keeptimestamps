@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 
 # git-keeptimestamps
-# (started from a snippet at https://stackoverflow.com/a/3418577)
-# 
+# (started from a snippet at https://stackoverflow.com/a/3418577
+#   by John Bartholomew <https://stackoverflow.com/users/52251/john-bartholomew>
+#   licensed under cc by-sa 3.0 <https://creativecommons.org/licenses/by-sa/3.0/>
+#   with attribution required <https://blog.stackexchange.com/2009/06/attribution-required/>)
+#
 # the goal is expected to do the followings:
 #   - save timestamps in current git tree
 #   - run a git command
